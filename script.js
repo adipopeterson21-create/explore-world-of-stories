@@ -55,25 +55,11 @@ class ApiService {
         return this.request('/documentaries');
     }
 
-    async uploadDocumentary(formData) {
-        // For file uploads, we need to use FormData without JSON headers
-        const url = `${this.baseURL}/documentaries`;
-        const config = {
+    async uploadDocumentary(documentaryData) {
+        return this.request('/documentaries', {
             method: 'POST',
-            body: formData,
-            headers: {
-                'Authorization': `Bearer ${this.token}`
-            }
-        };
-
-        try {
-            const response = await fetch(url, config);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error('Upload failed:', error);
-            throw error;
-        }
+            body: JSON.stringify(documentaryData)
+        });
     }
 
     async deleteDocumentary(id) {
@@ -164,10 +150,12 @@ class AdipoDocumentariesApp {
 
     async loadDocumentaries() {
         try {
+            console.log('Loading documentaries from API...');
             this.documentaries = await this.apiService.getDocumentaries();
+            console.log('Loaded documentaries:', this.documentaries);
         } catch (error) {
             console.error('Failed to load documentaries from API:', error);
-            throw error; // Let fallback handle it
+            throw error;
         }
     }
 
@@ -176,7 +164,6 @@ class AdipoDocumentariesApp {
             this.comments = await this.apiService.getComments();
         } catch (error) {
             console.error('Failed to load comments from API:', error);
-            // Comments can fail silently
             this.comments = [];
         }
     }
@@ -188,7 +175,7 @@ class AdipoDocumentariesApp {
                 id: 1,
                 title: "Wilderness Untamed",
                 description: "Explore the last remaining wilderness areas on Earth and the challenges they face in the modern world.",
-                image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80",
+                image_url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80",
                 category: "nature",
                 rating: 4.5,
                 downloads: 1247,
@@ -199,7 +186,7 @@ class AdipoDocumentariesApp {
                 id: 2,
                 title: "Urban Echoes",
                 description: "A deep dive into the lives of city dwellers and how urbanization is reshaping human connections.",
-                image: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1129&q=80",
+                image_url: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1129&q=80",
                 category: "society",
                 rating: 4.2,
                 downloads: 892,
@@ -210,7 +197,7 @@ class AdipoDocumentariesApp {
                 id: 3,
                 title: "Mountain Voices",
                 description: "Follow the lives of communities living in the world's highest mountain ranges and their unique cultures.",
-                image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+                image_url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
                 category: "culture",
                 rating: 4.8,
                 downloads: 1563,
@@ -725,8 +712,8 @@ class AdipoDocumentariesApp {
                         <h2>Add New Documentary</h2>
                         <button class="close-modal" onclick="app.closeAdminModal()">&times;</button>
                     </div>
-                    <div class="admin-form">
-                        <form id="documentaryForm">
+                    <div class="upload-form-container">
+                        <form id="documentaryForm" class="compact-form">
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="product-title">Title *</label>
@@ -744,10 +731,12 @@ class AdipoDocumentariesApp {
                                     </select>
                                 </div>
                             </div>
+                            
                             <div class="form-group">
                                 <label for="product-description">Description *</label>
                                 <textarea id="product-description" class="form-control" required></textarea>
                             </div>
+                            
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="product-duration">Duration</label>
@@ -758,19 +747,27 @@ class AdipoDocumentariesApp {
                                     <input type="number" id="product-rating" class="form-control" min="1" max="5" step="0.1" value="4.0">
                                 </div>
                             </div>
+                            
                             <div class="form-group">
-                                <label for="product-image">Image *</label>
-                                <input type="file" id="product-image" class="form-control" accept="image/*" required>
-                                <small>Supported formats: JPG, PNG, GIF. Max size: 10MB</small>
+                                <label for="product-image-url">Image URL *</label>
+                                <input type="url" id="product-image-url" class="form-control" required 
+                                       placeholder="https://images.unsplash.com/photo-1234567890">
+                                <small>Enter a direct image URL from Unsplash or other image hosting</small>
                             </div>
+                            
                             <div class="form-group">
-                                <label for="product-video">Video File (Optional)</label>
-                                <input type="file" id="product-video" class="form-control" accept="video/*">
-                                <small>Supported formats: MP4, AVI, MKV. Max size: 100MB</small>
+                                <label for="product-video-url">Video URL (Optional)</label>
+                                <input type="url" id="product-video-url" class="form-control" 
+                                       placeholder="https://example.com/video.mp4">
                             </div>
+                            
                             <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">Save Documentary</button>
-                                <button type="button" class="btn btn-outline" onclick="app.closeAdminModal()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Documentary
+                                </button>
+                                <button type="button" class="btn btn-outline" onclick="app.closeAdminModal()">
+                                    Cancel
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -941,34 +938,50 @@ class AdipoDocumentariesApp {
     async handleDocumentarySubmit(e) {
         e.preventDefault();
         
-        const formData = new FormData();
-        formData.append('title', document.getElementById('product-title').value);
-        formData.append('description', document.getElementById('product-description').value);
-        formData.append('category', document.getElementById('product-category').value);
-        formData.append('duration', document.getElementById('product-duration').value);
+        const title = document.getElementById('product-title').value;
+        const description = document.getElementById('product-description').value;
+        const category = document.getElementById('product-category').value;
+        const duration = document.getElementById('product-duration').value;
+        const imageUrl = document.getElementById('product-image-url').value;
+        const videoUrl = document.getElementById('product-video-url')?.value || null;
+        const rating = parseFloat(document.getElementById('product-rating').value) || 4.0;
 
-        const imageFile = document.getElementById('product-image').files[0];
-        const videoFile = document.getElementById('product-video').files[0];
-
-        if (imageFile) formData.append('image', imageFile);
-        if (videoFile) formData.append('video', videoFile);
+        if (!title || !description || !category || !imageUrl) {
+            this.showNotification('Please fill all required fields including image URL', 'error');
+            return;
+        }
 
         try {
-            await this.apiService.uploadDocumentary(formData);
+            // UPDATED: Use the new documentary data format
+            const documentaryData = {
+                title,
+                description,
+                category,
+                duration,
+                image_url: imageUrl,
+                video_url: videoUrl,
+                rating: rating
+            };
+
+            console.log('Sending documentary data:', documentaryData);
+            
+            const result = await this.apiService.uploadDocumentary(documentaryData);
+            console.log('Server response:', result);
+            
             this.showNotification('Documentary added successfully!', 'success');
             this.closeAdminModal();
             
-            // Refresh data
+            // Refresh the data immediately
             await this.loadDocumentaries();
-            this.renderDocumentaries();
-            if (this.currentView === 'admin') {
+            
+            // Force re-render of the current view
+            if (this.currentView === 'admin' || this.currentView === 'documentaries' || this.currentView === 'home') {
                 this.render();
             }
+            
         } catch (error) {
-            this.showNotification('Failed to add documentary. Using simulation.', 'info');
-            // Simulate success for demo
-            this.showNotification('Documentary added successfully (simulated)!', 'success');
-            this.closeAdminModal();
+            console.error('Error adding documentary:', error);
+            this.showNotification('Failed to add documentary: ' + error.message, 'error');
         }
     }
 
