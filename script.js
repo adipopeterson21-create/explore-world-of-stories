@@ -206,6 +206,7 @@ class AdipoDocumentariesApp {
                 title: "Wilderness Untamed",
                 description: "Explore the last remaining wilderness areas on Earth and the challenges they face in the modern world.",
                 image_url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+                video_url: "https://www.youtube.com/embed/7n7bw6luneo",
                 category: "nature",
                 rating: 4.5,
                 downloads: 1247,
@@ -217,6 +218,7 @@ class AdipoDocumentariesApp {
                 title: "Urban Echoes",
                 description: "A deep dive into the lives of city dwellers and how urbanization is reshaping human connections.",
                 image_url: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+                video_url: "https://www.youtube.com/embed/6v2L2UGZJAM",
                 category: "society",
                 rating: 4.2,
                 downloads: 892,
@@ -228,6 +230,7 @@ class AdipoDocumentariesApp {
                 title: "Mountain Voices",
                 description: "Follow the lives of communities living in the world's highest mountain ranges and their unique cultures.",
                 image_url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+                video_url: "https://www.youtube.com/embed/4kL2M20acuw",
                 category: "culture",
                 rating: 4.8,
                 downloads: 1563,
@@ -496,36 +499,9 @@ class AdipoDocumentariesApp {
             `;
         }
 
-        return this.documentaries.slice(0, 3).map(doc => `
-            <div class="documentary-card">
-                <div class="card-img" style="background-image: url('${doc.image_url}')">
-                    <div class="card-overlay">
-                        <button class="btn-play" onclick="app.viewDetails(${doc.id})">
-                            <i class="fas fa-play"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="card-content">
-                    <h3>${doc.title}</h3>
-                    <p>${doc.description}</p>
-                    <div class="card-meta">
-                        <span class="category-tag">${doc.category}</span>
-                        <div class="rating">
-                            ${this.generateStars(doc.rating)}
-                            <span class="rating-text">${doc.rating}</span>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <button class="btn btn-outline" onclick="app.downloadDocumentary(${doc.id})">
-                            <i class="fas fa-download"></i> Download
-                        </button>
-                        <button class="btn btn-primary" onclick="app.viewDetails(${doc.id})">
-                            <i class="fas fa-info-circle"></i> Details
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
+        return this.documentaries.slice(0, 3).map(doc => 
+            this.renderDocumentaryCard(doc)
+        ).join('');
     }
 
     renderDocumentariesView() {
@@ -570,14 +546,28 @@ class AdipoDocumentariesApp {
             `;
         }
 
-        return this.documentaries.map(doc => `
+        return this.documentaries.map(doc => 
+            this.renderDocumentaryCard(doc)
+        ).join('');
+    }
+
+    renderDocumentaryCard(doc) {
+        const imageUrl = this.getImageUrl(doc);
+        const isFallback = !doc.image_url || !this.isValidImageUrl(doc.image_url);
+        
+        return `
             <div class="documentary-card">
-                <div class="card-img" style="background-image: url('${doc.image_url}')">
-                    <div class="card-overlay">
-                        <button class="btn-play" onclick="app.viewDetails(${doc.id})">
-                            <i class="fas fa-play"></i>
-                        </button>
-                    </div>
+                <div class="card-img ${isFallback ? 'fallback' : ''}" 
+                     style="${!isFallback ? `background-image: url('${imageUrl}')` : ''}">
+                    ${isFallback ? `
+                        <i class="fas fa-film"></i>
+                    ` : `
+                        <div class="card-overlay">
+                            <button class="btn-play" onclick="app.viewDetails(${doc.id})">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        </div>
+                    `}
                 </div>
                 <div class="card-content">
                     <h3>${doc.title}</h3>
@@ -606,7 +596,7 @@ class AdipoDocumentariesApp {
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
     }
 
     renderCommentsView() {
@@ -922,22 +912,24 @@ class AdipoDocumentariesApp {
                         
                         <div class="admin-content">
                             <h3>Documentaries Management</h3>
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>Thumbnail</th>
-                                        <th>Title</th>
-                                        <th>Category</th>
-                                        <th>Rating</th>
-                                        <th>Downloads</th>
-                                        <th>Date Added</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${this.renderAdminTable()}
-                                </tbody>
-                            </table>
+                            <div class="table-responsive">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Thumbnail</th>
+                                            <th>Title</th>
+                                            <th>Category</th>
+                                            <th>Rating</th>
+                                            <th>Downloads</th>
+                                            <th>Date Added</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${this.renderAdminTable()}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -987,40 +979,52 @@ class AdipoDocumentariesApp {
             return '<tr><td colspan="7" class="text-center">No documentaries found</td></tr>';
         }
 
-        return this.documentaries.map(doc => `
-            <tr>
-                <td>
-                    <img src="${doc.image_url}" alt="${doc.title}" class="admin-thumbnail">
-                </td>
-                <td>
-                    <strong>${doc.title}</strong>
-                    <br>
-                    <small class="text-muted">${doc.description.substring(0, 60)}...</small>
-                </td>
-                <td><span class="category-badge">${doc.category}</span></td>
-                <td>
-                    <div class="rating">
-                        ${this.generateStars(doc.rating)}
-                        <span class="rating-number">${doc.rating}</span>
-                    </div>
-                </td>
-                <td>${doc.downloads || 0}</td>
-                <td>${doc.dateAdded}</td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn-icon btn-edit" onclick="app.editDocumentary(${doc.id})" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon btn-delete" onclick="app.deleteDocumentary(${doc.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <button class="btn-icon btn-view" onclick="app.viewDocumentary(${doc.id})" title="View">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+        return this.documentaries.map(doc => {
+            const imageUrl = this.getImageUrl(doc);
+            const isFallback = !doc.image_url || !this.isValidImageUrl(doc.image_url);
+            
+            return `
+                <tr>
+                    <td>
+                        ${isFallback ? `
+                            <div class="admin-thumbnail fallback" title="${doc.title}">
+                                No Image
+                            </div>
+                        ` : `
+                            <img src="${imageUrl}" alt="${doc.title}" class="admin-thumbnail" 
+                                 onerror="this.classList.add('fallback'); this.outerHTML = '<div class=\\'admin-thumbnail fallback\\' title=\\'${doc.title}\\'>No Image</div>';">
+                        `}
+                    </td>
+                    <td>
+                        <strong>${doc.title}</strong>
+                        <br>
+                        <small class="text-muted">${doc.description.substring(0, 60)}...</small>
+                    </td>
+                    <td><span class="category-badge">${doc.category}</span></td>
+                    <td>
+                        <div class="rating">
+                            ${this.generateStars(doc.rating)}
+                            <span class="rating-number">${doc.rating}</span>
+                        </div>
+                    </td>
+                    <td>${doc.downloads || 0}</td>
+                    <td>${doc.dateAdded}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-icon btn-edit" onclick="app.editDocumentary(${doc.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon btn-delete" onclick="app.deleteDocumentary(${doc.id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="btn-icon btn-view" onclick="app.viewDetails(${doc.id})" title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
     renderFooter() {
@@ -1150,8 +1154,8 @@ class AdipoDocumentariesApp {
                                 <div class="form-group">
                                     <label for="product-video-url">Video URL (Optional)</label>
                                     <input type="url" id="product-video-url" class="form-control" 
-                                           placeholder="https://example.com/video.mp4">
-                                    <small class="help-text">Link to the full documentary video (YouTube, Vimeo, etc.)</small>
+                                           placeholder="https://www.youtube.com/watch?v=VIDEO_ID">
+                                    <small class="help-text">YouTube, Vimeo, or direct video URL</small>
                                 </div>
                             </form>
                         </div>
@@ -1169,37 +1173,209 @@ class AdipoDocumentariesApp {
                 </div>
             </div>
 
-            <!-- User Login Modal -->
-            <div class="modal" id="loginModal" style="display: none;">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2><i class="fas fa-sign-in-alt"></i> User Login</h2>
-                        <button class="close-modal" onclick="app.closeLoginModal()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form class="auth-form" id="modalLoginForm">
-                            <div class="form-group">
-                                <label for="modal-login-email">Email</label>
-                                <input type="email" id="modal-login-email" class="form-control" placeholder="Enter your email" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="modal-login-password">Password</label>
-                                <input type="password" id="modal-login-password" class="form-control" placeholder="Enter your password" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-block">
-                                <i class="fas fa-sign-in-alt"></i> Login
-                            </button>
-                        </form>
-                        <div class="auth-footer">
-                            <p>Don't have an account? <a href="#" onclick="app.showRegisterModal()">Register here</a></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Video Modal -->
+            <div class="modal" id="videoModal" style="display: none;"></div>
 
             <!-- Notification System -->
             <div class="notification-container" id="notificationContainer"></div>
         `;
+    }
+
+    // Image and Video Handling Methods
+    getImageUrl(documentary) {
+        if (!documentary.image_url) {
+            return this.getFallbackImage(documentary);
+        }
+        
+        // Check if it's a valid image URL
+        if (this.isValidImageUrl(documentary.image_url)) {
+            return documentary.image_url;
+        }
+        
+        return this.getFallbackImage(documentary);
+    }
+
+    isValidImageUrl(url) {
+        if (!url) return false;
+        
+        // Check if it's a common image format
+        const imagePattern = /\.(jpeg|jpg|png|gif|bmp|webp|svg)$/i;
+        if (imagePattern.test(url)) {
+            return true;
+        }
+        
+        // Check if it's a data URL (base64 image)
+        if (url.startsWith('data:image/')) {
+            return true;
+        }
+        
+        // Check if it's from common image hosting sites
+        const allowedDomains = [
+            'unsplash.com', 'images.unsplash.com',
+            'picsum.photos', 'via.placeholder.com',
+            'imgbb.com', 'i.ibb.co',
+            'flickr.com', 'staticflickr.com',
+            'cloudinary.com', 'res.cloudinary.com'
+        ];
+        
+        return allowedDomains.some(domain => url.includes(domain));
+    }
+
+    getFallbackImage(documentary) {
+        // Generate a consistent fallback based on documentary ID or category
+        const colors = ['1a365d', '2d3748', '744210', '22543d', '702459'];
+        const color = colors[documentary.id % colors.length] || '1a365d';
+        
+        return `https://via.placeholder.com/500x300/${color}/ffffff?text=${encodeURIComponent(documentary.title)}`;
+    }
+
+    viewDetails(id) {
+        if (!this.isUserLoggedIn) {
+            this.showNotification('Please login to view details', 'warning');
+            this.navigate('login');
+            return;
+        }
+        
+        const documentary = this.documentaries.find(doc => doc.id === id);
+        if (!documentary) return;
+        
+        this.showVideoModal(documentary);
+    }
+
+    showVideoModal(documentary) {
+        const modalContent = `
+            <div class="modal" id="videoModal" style="display: flex;">
+                <div class="modal-content" style="max-width: 900px;">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-play"></i> ${documentary.title}</h2>
+                        <button class="close-modal" onclick="app.closeVideoModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        ${this.getVideoEmbed(documentary)}
+                        <div class="video-details" style="margin-top: 1.5rem;">
+                            <h3>${documentary.title}</h3>
+                            <p>${documentary.description}</p>
+                            <div class="video-meta" style="display: flex; gap: 2rem; margin-top: 1rem; color: var(--secondary);">
+                                <span><i class="fas fa-clock"></i> ${documentary.duration}</span>
+                                <span><i class="fas fa-download"></i> ${documentary.downloads || 0} downloads</span>
+                                <span><i class="fas fa-star"></i> ${documentary.rating}/5</span>
+                                <span><i class="fas fa-tag"></i> ${documentary.category}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('videoModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalContent);
+    }
+
+    getVideoEmbed(documentary) {
+        if (!documentary.video_url) {
+            const imageUrl = this.getImageUrl(documentary);
+            const isFallback = !documentary.image_url || !this.isValidImageUrl(documentary.image_url);
+            
+            return `
+                <div class="image-container" style="height: 400px;">
+                    ${isFallback ? `
+                        <div class="image-placeholder">
+                            <i class="fas fa-film"></i>
+                            <h3>Video Not Available</h3>
+                            <p>This documentary doesn't have a video URL yet.</p>
+                            <button class="btn btn-primary" onclick="app.downloadDocumentary(${documentary.id})" style="margin-top: 1rem;">
+                                <i class="fas fa-download"></i> Download Instead
+                            </button>
+                        </div>
+                    ` : `
+                        <img src="${imageUrl}" alt="${documentary.title}" 
+                             style="max-height: 100%; object-fit: contain;"
+                             onerror="this.style.display='none'; this.parentElement.innerHTML = '<div class=\\'image-placeholder\\'><i class=\\'fas fa-film\\'></i><h3>Image Load Failed</h3><p>The documentary image could not be loaded.</p></div>';">
+                    `}
+                </div>
+            `;
+        }
+        
+        // Check if it's a YouTube URL
+        if (this.isYouTubeUrl(documentary.video_url)) {
+            const videoId = this.getYouTubeId(documentary.video_url);
+            if (videoId) {
+                return `
+                    <div class="video-container">
+                        <iframe 
+                            src="https://www.youtube.com/embed/${videoId}?rel=0" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                `;
+            }
+        }
+        
+        // Check if it's a Vimeo URL
+        if (this.isVimeoUrl(documentary.video_url)) {
+            const videoId = this.getVimeoId(documentary.video_url);
+            if (videoId) {
+                return `
+                    <div class="video-container">
+                        <iframe 
+                            src="https://player.vimeo.com/video/${videoId}" 
+                            frameborder="0" 
+                            allow="autoplay; fullscreen; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                `;
+            }
+        }
+        
+        // For direct video files
+        if (documentary.video_url.match(/\.(mp4|webm|ogg)$/i)) {
+            return `
+                <div class="video-container">
+                    <video controls style="width: 100%; height: 100%;">
+                        <source src="${documentary.video_url}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            `;
+        }
+        
+        // Fallback - try to embed as iframe
+        return `
+            <div class="video-container">
+                <iframe src="${documentary.video_url}" frameborder="0" allowfullscreen></iframe>
+            </div>
+        `;
+    }
+
+    isYouTubeUrl(url) {
+        return url.includes('youtube.com') || url.includes('youtu.be');
+    }
+
+    getYouTubeId(url) {
+        const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+        const match = url.match(regex);
+        return match ? match[1] : null;
+    }
+
+    isVimeoUrl(url) {
+        return url.includes('vimeo.com');
+    }
+
+    getVimeoId(url) {
+        const regex = /vimeo\.com\/(\d+)/;
+        const match = url.match(regex);
+        return match ? match[1] : null;
+    }
+
+    closeVideoModal() {
+        const modal = document.getElementById('videoModal');
+        if (modal) modal.remove();
     }
 
     generateStars(rating) {
@@ -1427,27 +1603,15 @@ class AdipoDocumentariesApp {
             await this.apiService.trackDownload(id);
             await new Promise(resolve => setTimeout(resolve, 2000));
             this.showNotification('Download started!', 'success');
+            
+            // Update download count locally
+            const documentary = this.documentaries.find(doc => doc.id === id);
+            if (documentary) {
+                documentary.downloads = (documentary.downloads || 0) + 1;
+            }
         } catch (error) {
             this.showNotification('Download completed!', 'success');
         }
-    }
-
-    toggleFavorite(id) {
-        if (!this.isUserLoggedIn) {
-            this.showNotification('Please login to add favorites', 'warning');
-            return;
-        }
-        this.showNotification('Added to favorites!', 'success');
-    }
-
-    viewDetails(id) {
-        if (!this.isUserLoggedIn) {
-            this.showNotification('Please login to view details', 'warning');
-            this.navigate('login');
-            return;
-        }
-        this.showNotification('Opening documentary details...', 'info');
-        // In a real app, this would show a detailed view
     }
 
     async submitComment() {
@@ -1467,17 +1631,40 @@ class AdipoDocumentariesApp {
         }
 
         try {
-            await this.apiService.addComment({ author: name, email, text });
+            const newComment = {
+                id: Date.now(),
+                author: name,
+                email: email,
+                text: text,
+                date: new Date().toISOString().split('T')[0],
+                status: 'approved'
+            };
+
+            await this.apiService.addComment(newComment);
             this.showNotification('Comment posted successfully!', 'success');
             
+            // Add to local comments
+            this.comments.unshift(newComment);
+            this.renderComments();
+            
+            // Clear form
             document.getElementById('comment-name').value = '';
             document.getElementById('comment-email').value = '';
             document.getElementById('comment-text').value = '';
-
-            await this.loadComments();
-            this.renderComments();
         } catch (error) {
+            // Fallback for demo
+            const newComment = {
+                id: Date.now(),
+                author: name,
+                email: email,
+                text: text,
+                date: new Date().toISOString().split('T')[0],
+                status: 'approved'
+            };
+            this.comments.unshift(newComment);
             this.showNotification('Comment posted!', 'success');
+            this.renderComments();
+            
             document.getElementById('comment-name').value = '';
             document.getElementById('comment-email').value = '';
             document.getElementById('comment-text').value = '';
@@ -1532,15 +1719,7 @@ class AdipoDocumentariesApp {
 
         this.showNotification('Message sent successfully! We will get back to you soon.', 'success');
         
-        document.getElementById('contact-name').value = '';
-        document.getElementById('contact-email').value = '';
-        document.getElementById('contact-subject').value = '';
-        document.getElementById('contact-message').value = '';
-    }
-
-    sendMessage() {
-        this.showNotification('Message sent successfully!', 'success');
-        
+        // Clear form
         document.getElementById('contact-name').value = '';
         document.getElementById('contact-email').value = '';
         document.getElementById('contact-subject').value = '';
@@ -1557,10 +1736,9 @@ class AdipoDocumentariesApp {
 
     closeAdminModal() {
         document.getElementById('adminModal').style.display = 'none';
-    }
-
-    closeLoginModal() {
-        document.getElementById('loginModal').style.display = 'none';
+        // Clear form
+        const form = document.getElementById('documentaryForm');
+        if (form) form.reset();
     }
 
     async handleDocumentarySubmit(e) {
@@ -1579,20 +1757,35 @@ class AdipoDocumentariesApp {
         const videoUrl = document.getElementById('product-video-url')?.value || null;
         const rating = parseFloat(document.getElementById('product-rating').value) || 4.0;
 
-        if (!title || !description || !category || !imageUrl) {
-            this.showNotification('Please fill all required fields including image URL', 'error');
+        if (!title || !description || !category) {
+            this.showNotification('Please fill all required fields', 'error');
+            return;
+        }
+
+        // Validate image URL
+        if (imageUrl && !this.isValidImageUrl(imageUrl)) {
+            this.showNotification('Please enter a valid image URL (jpg, png, gif, etc.)', 'error');
+            return;
+        }
+
+        // Validate video URL if provided
+        if (videoUrl && !this.isValidVideoUrl(videoUrl)) {
+            this.showNotification('Please enter a valid YouTube, Vimeo, or direct video URL', 'error');
             return;
         }
 
         try {
             const documentaryData = {
+                id: Date.now(),
                 title,
                 description,
                 category,
                 duration,
                 image_url: imageUrl,
                 video_url: videoUrl,
-                rating: rating
+                rating: rating,
+                downloads: 0,
+                dateAdded: new Date().toISOString().split('T')[0]
             };
 
             const result = await this.apiService.uploadDocumentary(documentaryData);
@@ -1600,17 +1793,48 @@ class AdipoDocumentariesApp {
             this.showNotification('Documentary added successfully!', 'success');
             this.closeAdminModal();
             
-            await this.loadDocumentaries();
+            // Add to local documentaries
+            this.documentaries.unshift(documentaryData);
             
+            // Update views
             if (this.currentView === 'admin' || this.currentView === 'documentaries' || this.currentView === 'home') {
                 this.render();
             }
             
         } catch (error) {
             console.error('Error adding documentary:', error);
+            // Fallback for demo
+            const documentaryData = {
+                id: Date.now(),
+                title,
+                description,
+                category,
+                duration,
+                image_url: imageUrl,
+                video_url: videoUrl,
+                rating: rating,
+                downloads: 0,
+                dateAdded: new Date().toISOString().split('T')[0]
+            };
+            this.documentaries.unshift(documentaryData);
             this.showNotification('Documentary added successfully!', 'success');
             this.closeAdminModal();
+            
+            if (this.currentView === 'admin' || this.currentView === 'documentaries' || this.currentView === 'home') {
+                this.render();
+            }
         }
+    }
+
+    isValidVideoUrl(url) {
+        if (!url) return true; // Video is optional
+        
+        return this.isYouTubeUrl(url) || 
+               this.isVimeoUrl(url) || 
+               url.match(/\.(mp4|webm|ogg)$/i) ||
+               url.includes('vimeo.com') ||
+               url.includes('youtube.com') ||
+               url.includes('youtu.be');
     }
 
     async deleteDocumentary(id) {
@@ -1627,13 +1851,22 @@ class AdipoDocumentariesApp {
             await this.apiService.deleteDocumentary(id);
             this.showNotification('Documentary deleted successfully!', 'success');
             
-            await this.loadDocumentaries();
+            // Remove from local documentaries
+            this.documentaries = this.documentaries.filter(doc => doc.id !== id);
+            
+            // Update views
             this.renderDocumentaries();
             if (this.currentView === 'admin') {
                 this.render();
             }
         } catch (error) {
+            // Fallback for demo
+            this.documentaries = this.documentaries.filter(doc => doc.id !== id);
             this.showNotification('Documentary deleted successfully!', 'success');
+            this.renderDocumentaries();
+            if (this.currentView === 'admin') {
+                this.render();
+            }
         }
     }
 
@@ -1643,10 +1876,6 @@ class AdipoDocumentariesApp {
             return;
         }
         this.showNotification('Edit feature coming soon!', 'info');
-    }
-
-    viewDocumentary(id) {
-        this.showNotification('Opening documentary...', 'info');
     }
 
     async refreshAdminData() {
@@ -1699,11 +1928,6 @@ class AdipoDocumentariesApp {
             info: 'info-circle'
         };
         return icons[type] || 'info-circle';
-    }
-
-    validateEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
     }
 
     // Update specific sections
