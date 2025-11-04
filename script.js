@@ -50,16 +50,29 @@ class ApiService {
         }
     }
 
-    // Documentaries
+    // Documentaries - UPDATED for file uploads
     async getDocumentaries() {
         return this.request('/documentaries');
     }
 
-    async uploadDocumentary(documentaryData) {
-        return this.request('/documentaries', {
+    async uploadDocumentary(formData) {
+        const url = `${this.baseURL}/documentaries`;
+        const config = {
             method: 'POST',
-            body: JSON.stringify(documentaryData)
-        });
+            body: formData,
+            headers: {
+                'Authorization': `Bearer ${this.token}`
+            }
+        };
+
+        try {
+            const response = await fetch(url, config);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Upload failed:', error);
+            throw error;
+        }
     }
 
     async deleteDocumentary(id) {
@@ -713,7 +726,7 @@ class AdipoDocumentariesApp {
                         <button class="close-modal" onclick="app.closeAdminModal()">&times;</button>
                     </div>
                     <div class="upload-form-container">
-                        <form id="documentaryForm" class="compact-form">
+                        <form id="documentaryForm" class="compact-form" enctype="multipart/form-data">
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="product-title">Title *</label>
@@ -748,11 +761,14 @@ class AdipoDocumentariesApp {
                                 </div>
                             </div>
                             
+                            <!-- CHANGED: File upload instead of URL -->
                             <div class="form-group">
-                                <label for="product-image-url">Image URL *</label>
-                                <input type="url" id="product-image-url" class="form-control" required 
-                                       placeholder="https://images.unsplash.com/photo-1234567890">
-                                <small>Enter a direct image URL from Unsplash or other image hosting</small>
+                                <label for="product-image-file">Upload Image *</label>
+                                <input type="file" id="product-image-file" class="form-control" accept="image/*" required>
+                                <small>Supported: JPG, PNG, GIF • Max 10MB</small>
+                                <div class="image-preview" id="image-preview" style="margin-top: 10px; display: none;">
+                                    <img id="preview-img" style="max-width: 200px; max-height: 150px; border-radius: 4px;">
+                                </div>
                             </div>
                             
                             <div class="form-group">
@@ -830,6 +846,29 @@ class AdipoDocumentariesApp {
         if (form) {
             form.addEventListener('submit', (e) => this.handleDocumentarySubmit(e));
         }
+
+        // Image preview functionality
+        setTimeout(() => {
+            const imageInput = document.getElementById('product-image-file');
+            if (imageInput) {
+                imageInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    const preview = document.getElementById('image-preview');
+                    const previewImg = document.getElementById('preview-img');
+                    
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            previewImg.src = e.target.result;
+                            preview.style.display = 'block';
+                        }
+                        reader.readAsDataURL(file);
+                    } else {
+                        preview.style.display = 'none';
+                    }
+                });
+            }
+        }, 100);
     }
 
     navigate(view) {
@@ -942,30 +981,26 @@ class AdipoDocumentariesApp {
         const description = document.getElementById('product-description').value;
         const category = document.getElementById('product-category').value;
         const duration = document.getElementById('product-duration').value;
-        const imageUrl = document.getElementById('product-image-url').value;
         const videoUrl = document.getElementById('product-video-url')?.value || null;
-        const rating = parseFloat(document.getElementById('product-rating').value) || 4.0;
+        const imageFile = document.getElementById('product-image-file').files[0];
 
-        if (!title || !description || !category || !imageUrl) {
-            this.showNotification('Please fill all required fields including image URL', 'error');
+        if (!title || !description || !category || !imageFile) {
+            this.showNotification('Please fill all required fields and select an image file', 'error');
             return;
         }
 
         try {
-            // UPDATED: Use the new documentary data format
-            const documentaryData = {
-                title,
-                description,
-                category,
-                duration,
-                image_url: imageUrl,
-                video_url: videoUrl,
-                rating: rating
-            };
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('category', category);
+            formData.append('duration', duration);
+            formData.append('video_url', videoUrl);
+            formData.append('image', imageFile);
 
-            console.log('Sending documentary data:', documentaryData);
+            console.log('Uploading documentary with file...');
             
-            const result = await this.apiService.uploadDocumentary(documentaryData);
+            const result = await this.apiService.uploadDocumentary(formData);
             console.log('Server response:', result);
             
             this.showNotification('Documentary added successfully!', 'success');
@@ -1082,7 +1117,7 @@ class AdipoDocumentariesApp {
     }
 }
 
-// Login System for Admin Section
+// Login System for Admin Section (same as before)
 class LoginSystem {
     constructor() {
         this.isAuthenticated = false;
