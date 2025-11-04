@@ -73,7 +73,7 @@ function initializeDatabase() {
   )`);
 
   // Insert default admin user
-  const defaultPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  const defaultPassword = process.env.ADMIN_PASSWORD || 'peter123@#$A';
   bcrypt.hash(defaultPassword, 10, (err, hash) => {
     if (err) {
       console.error('Error hashing password:', err);
