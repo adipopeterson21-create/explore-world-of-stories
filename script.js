@@ -718,13 +718,14 @@ class AdipoDocumentariesApp {
     }
 
     renderModals() {
-        return `
-            <div class="modal" id="adminModal" style="display: none;">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2>Add New Documentary</h2>
-                        <button class="close-modal" onclick="app.closeAdminModal()">&times;</button>
-                    </div>
+    return `
+        <div class="modal" id="adminModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Add New Documentary</h2>
+                    <button class="close-modal" onclick="app.closeAdminModal()">&times;</button>
+                </div>
+                <div class="modal-body">
                     <div class="upload-form-container">
                         <form id="documentaryForm" class="compact-form" enctype="multipart/form-data">
                             <div class="form-row">
@@ -761,6 +762,49 @@ class AdipoDocumentariesApp {
                                 </div>
                             </div>
                             
+                            <div class="form-group">
+                                <label for="product-image-file">Upload Image *</label>
+                                <input type="file" id="product-image-file" class="form-control" accept="image/*" required>
+                                <small>Supported: JPG, PNG, GIF • Max 10MB</small>
+                                <div class="image-preview" id="image-preview" style="margin-top: 10px; display: none;">
+                                    <img id="preview-img" style="max-width: 200px; max-height: 150px; border-radius: 4px;">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="product-video-url">Video URL (Optional)</label>
+                                <input type="url" id="product-video-url" class="form-control" 
+                                       placeholder="https://example.com/video.mp4">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-actions">
+                        <button type="submit" form="documentaryForm" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Documentary
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="app.closeAdminModal()">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+    generateStars(rating) {
+        let stars = '';
+        const fullStars = Math.floor(rating);
+        const hasHalfStar = rating % 1 !== 0;
+
+        for (let i = 0; i < fullStars; i++) {
+            stars += '<i class="fas fa-star"></i>';
+        }renderModals() {
+                                </div>
+                            </div>
+                            
                             <!-- CHANGED: File upload instead of URL -->
                             <div class="form-group">
                                 <label for="product-image-file">Upload Image *</label>
@@ -791,15 +835,6 @@ class AdipoDocumentariesApp {
             </div>
         `;
     }
-
-    generateStars(rating) {
-        let stars = '';
-        const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 !== 0;
-
-        for (let i = 0; i < fullStars; i++) {
-            stars += '<i class="fas fa-star"></i>';
-        }
 
         if (hasHalfStar) {
             stars += '<i class="fas fa-star-half-alt"></i>';
