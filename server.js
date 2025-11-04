@@ -293,3 +293,41 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`✅ Database: In-memory SQLite (data persists while server runs)`);
 });
+// Add these routes to your existing server.js:
+
+// User registration
+app.post('/api/user/register', (req, res) => {
+    const { name, email, password } = req.body;
+    
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // In a real app, you'd hash the password and save to database
+    // For demo, we'll just return success
+    res.json({
+        token: 'demo-user-token',
+        user: { name, email },
+        message: 'Registration successful'
+    });
+});
+
+// User login
+app.post('/api/user/login', (req, res) => {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Demo credentials
+    if (email === 'user@example.com' && password === 'password123') {
+        res.json({
+            token: 'demo-user-token',
+            user: { name: 'Demo User', email },
+            message: 'Login successful'
+        });
+    } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+    }
+});
