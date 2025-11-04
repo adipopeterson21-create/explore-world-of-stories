@@ -848,6 +848,10 @@
     font-size: 0.9rem;
     transition: border-color 0.3s;
 }
+.form-group textarea{
+    min-height: 50px;
+    resize: vertical;
+}
 
 .form-group input:focus,
 .form-group select:focus,
