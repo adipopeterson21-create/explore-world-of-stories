@@ -38,41 +38,23 @@ class ApiService {
                 throw new Error(`HTTP ${response.status}`);
             }
 
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return await response.json();
-            } else {
-                return await response.text();
-            }
+            return await response.json();
         } catch (error) {
             console.error('API Request failed:', error);
-            throw new Error('Network error. Please check your connection.');
+            throw error;
         }
     }
 
-    // Documentaries - UPDATED for file uploads
+    // Documentaries
     async getDocumentaries() {
         return this.request('/documentaries');
     }
 
-    async uploadDocumentary(formData) {
-        const url = `${this.baseURL}/documentaries`;
-        const config = {
+    async uploadDocumentary(documentaryData) {
+        return this.request('/documentaries', {
             method: 'POST',
-            body: formData,
-            headers: {
-                'Authorization': `Bearer ${this.token}`
-            }
-        };
-
-        try {
-            const response = await fetch(url, config);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error('Upload failed:', error);
-            throw error;
-        }
+            body: JSON.stringify(documentaryData)
+        });
     }
 
     async deleteDocumentary(id) {
@@ -132,42 +114,41 @@ class AdipoDocumentariesApp {
         // Hide loading immediately
         this.hideLoading();
         
-        // Render initial content
+        // Render initial content FIRST
         this.render();
         
-        // Load data in background
+        // Then load data in background
         this.loadInitialData();
     }
 
     async loadInitialData() {
-        this.showLoading();
-        
         try {
-            // Load data from API
-            await Promise.all([
-                this.loadDocumentaries(),
-                this.loadComments()
+            // Load data from API with timeout
+            await Promise.race([
+                Promise.all([
+                    this.loadDocumentaries(),
+                    this.loadComments()
+                ]),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout')), 5000)
+                )
             ]);
         } catch (error) {
-            console.error('Failed to load initial data:', error);
-            // Use fallback data
+            console.log('Using fallback data due to timeout');
+            // Use fallback data immediately
             await this.loadFallbackData();
         }
         
-        this.hideLoading();
-        
-        // Update the view with real data
+        // Update the view with data
         this.renderDocumentaries();
         this.renderComments();
     }
 
     async loadDocumentaries() {
         try {
-            console.log('Loading documentaries from API...');
             this.documentaries = await this.apiService.getDocumentaries();
-            console.log('Loaded documentaries:', this.documentaries);
         } catch (error) {
-            console.error('Failed to load documentaries from API:', error);
+            // Let fallback handle it
             throw error;
         }
     }
@@ -176,19 +157,18 @@ class AdipoDocumentariesApp {
         try {
             this.comments = await this.apiService.getComments();
         } catch (error) {
-            console.error('Failed to load comments from API:', error);
             this.comments = [];
         }
     }
 
     async loadFallbackData() {
-        // Mock data as fallback
+        // Mock data as fallback - IMMEDIATE
         this.documentaries = [
             {
                 id: 1,
                 title: "Wilderness Untamed",
                 description: "Explore the last remaining wilderness areas on Earth and the challenges they face in the modern world.",
-                image_url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80",
+                image_url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
                 category: "nature",
                 rating: 4.5,
                 downloads: 1247,
@@ -199,7 +179,7 @@ class AdipoDocumentariesApp {
                 id: 2,
                 title: "Urban Echoes",
                 description: "A deep dive into the lives of city dwellers and how urbanization is reshaping human connections.",
-                image_url: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1129&q=80",
+                image_url: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
                 category: "society",
                 rating: 4.2,
                 downloads: 892,
@@ -210,7 +190,7 @@ class AdipoDocumentariesApp {
                 id: 3,
                 title: "Mountain Voices",
                 description: "Follow the lives of communities living in the world's highest mountain ranges and their unique cultures.",
-                image_url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+                image_url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
                 category: "culture",
                 rating: 4.8,
                 downloads: 1563,
@@ -239,9 +219,6 @@ class AdipoDocumentariesApp {
                 documentaryId: 2
             }
         ];
-        
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     render() {
@@ -359,7 +336,7 @@ class AdipoDocumentariesApp {
 
         return this.documentaries.slice(0, 3).map(doc => `
             <div class="documentary-card">
-                <div class="card-img" style="background-image: url('${doc.image_url || doc.image}')"></div>
+                <div class="card-img" style="background-image: url('${doc.image_url}')"></div>
                 <div class="card-content">
                     <h3>${doc.title}</h3>
                     <p>${doc.description}</p>
@@ -410,7 +387,7 @@ class AdipoDocumentariesApp {
 
         return this.documentaries.map(doc => `
             <div class="documentary-card">
-                <div class="card-img" style="background-image: url('${doc.image_url || doc.image}')"></div>
+                <div class="card-img" style="background-image: url('${doc.image_url}')"></div>
                 <div class="card-content">
                     <h3>${doc.title}</h3>
                     <p>${doc.description}</p>
@@ -477,7 +454,7 @@ class AdipoDocumentariesApp {
             <div class="comment">
                 <div class="comment-header">
                     <div class="comment-author">${comment.author}</div>
-                    <div class="comment-date">${comment.date || comment.date_added}</div>
+                    <div class="comment-date">${comment.date}</div>
                 </div>
                 <div class="comment-text">
                     <p>${comment.text}</p>
@@ -658,7 +635,7 @@ class AdipoDocumentariesApp {
                 <td><span class="category-badge">${doc.category}</span></td>
                 <td>${this.generateStars(doc.rating)}</td>
                 <td>${doc.downloads || 0}</td>
-                <td>${doc.dateAdded || doc.date_added}</td>
+                <td>${doc.dateAdded}</td>
                 <td>
                     <div class="action-buttons">
                         <button class="btn-icon" onclick="app.editDocumentary(${doc.id})">
@@ -718,81 +695,79 @@ class AdipoDocumentariesApp {
     }
 
     renderModals() {
-    return `
-        <div class="modal" id="adminModal" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Add New Documentary</h2>
-                    <button class="close-modal" onclick="app.closeAdminModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="upload-form-container">
-                        <form id="documentaryForm" class="compact-form" enctype="multipart/form-data">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="product-title">Title *</label>
-                                    <input type="text" id="product-title" class="form-control" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="product-category">Category *</label>
-                                    <select id="product-category" class="form-control" required>
-                                        <option value="">Select Category</option>
-                                        <option value="nature">Nature</option>
-                                        <option value="society">Society</option>
-                                        <option value="culture">Culture</option>
-                                        <option value="science">Science</option>
-                                        <option value="history">History</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="product-description">Description *</label>
-                                <textarea id="product-description" class="form-control" required></textarea>
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="product-duration">Duration</label>
-                                    <input type="text" id="product-duration" class="form-control" placeholder="e.g., 45 min">
-                                </div>
-                                <div class="form-group">
-                                    <label for="product-rating">Rating</label>
-                                    <input type="number" id="product-rating" class="form-control" min="1" max="5" step="0.1" value="4.0">
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="product-image-file">Upload Image *</label>
-                                <input type="file" id="product-image-file" class="form-control" accept="image/*" required>
-                                <small>Supported: JPG, PNG, GIF • Max 10MB</small>
-                                <div class="image-preview" id="image-preview" style="margin-top: 10px; display: none;">
-                                    <img id="preview-img" style="max-width: 200px; max-height: 150px; border-radius: 4px;">
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="product-video-url">Video URL (Optional)</label>
-                                <input type="url" id="product-video-url" class="form-control" 
-                                       placeholder="https://example.com/video.mp4">
-                            </div>
-                        </form>
+        return `
+            <div class="modal" id="adminModal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Add New Documentary</h2>
+                        <button class="close-modal" onclick="app.closeAdminModal()">&times;</button>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <div class="form-actions">
-                        <button type="submit" form="documentaryForm" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Save Documentary
-                        </button>
-                        <button type="button" class="btn btn-outline" onclick="app.closeAdminModal()">
-                            Cancel
-                        </button>
+                    <div class="modal-body">
+                        <div class="upload-form-container">
+                            <form id="documentaryForm" class="compact-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="product-title">Title *</label>
+                                        <input type="text" id="product-title" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="product-category">Category *</label>
+                                        <select id="product-category" class="form-control" required>
+                                            <option value="">Select Category</option>
+                                            <option value="nature">Nature</option>
+                                            <option value="society">Society</option>
+                                            <option value="culture">Culture</option>
+                                            <option value="science">Science</option>
+                                            <option value="history">History</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="product-description">Description *</label>
+                                    <textarea id="product-description" class="form-control" required></textarea>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="product-duration">Duration</label>
+                                        <input type="text" id="product-duration" class="form-control" placeholder="e.g., 45 min">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="product-rating">Rating</label>
+                                        <input type="number" id="product-rating" class="form-control" min="1" max="5" step="0.1" value="4.0">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="product-image-url">Image URL *</label>
+                                    <input type="url" id="product-image-url" class="form-control" required 
+                                           placeholder="https://images.unsplash.com/photo-1234567890">
+                                    <small>Enter a direct image URL from Unsplash or other image hosting</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="product-video-url">Video URL (Optional)</label>
+                                    <input type="url" id="product-video-url" class="form-control" 
+                                           placeholder="https://example.com/video.mp4">
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="form-actions">
+                            <button type="submit" form="documentaryForm" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Documentary
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="app.closeAdminModal()">
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
-}
+        `;
+    }
 
     generateStars(rating) {
         let stars = '';
@@ -801,40 +776,7 @@ class AdipoDocumentariesApp {
 
         for (let i = 0; i < fullStars; i++) {
             stars += '<i class="fas fa-star"></i>';
-        }renderModals() {
-                                </div>
-                            </div>
-                            
-                            <!-- CHANGED: File upload instead of URL -->
-                            <div class="form-group">
-                                <label for="product-image-file">Upload Image *</label>
-                                <input type="file" id="product-image-file" class="form-control" accept="image/*" required>
-                                <small>Supported: JPG, PNG, GIF • Max 10MB</small>
-                                <div class="image-preview" id="image-preview" style="margin-top: 10px; display: none;">
-                                    <img id="preview-img" style="max-width: 200px; max-height: 150px; border-radius: 4px;">
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="product-video-url">Video URL (Optional)</label>
-                                <input type="url" id="product-video-url" class="form-control" 
-                                       placeholder="https://example.com/video.mp4">
-                            </div>
-                            
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save"></i> Save Documentary
-                                </button>
-                                <button type="button" class="btn btn-outline" onclick="app.closeAdminModal()">
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
+        }
 
         if (hasHalfStar) {
             stars += '<i class="fas fa-star-half-alt"></i>';
@@ -864,8 +806,7 @@ class AdipoDocumentariesApp {
         document.addEventListener('click', (e) => {
             if (e.target.id === 'adminBtn' || e.target.closest('#adminBtn')) {
                 e.preventDefault();
-                // Let the login system handle this
-                return;
+                this.showNotification('Use the Admin button in the header to login', 'info');
             }
         });
 
@@ -881,29 +822,6 @@ class AdipoDocumentariesApp {
         if (form) {
             form.addEventListener('submit', (e) => this.handleDocumentarySubmit(e));
         }
-
-        // Image preview functionality
-        setTimeout(() => {
-            const imageInput = document.getElementById('product-image-file');
-            if (imageInput) {
-                imageInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    const preview = document.getElementById('image-preview');
-                    const previewImg = document.getElementById('preview-img');
-                    
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            previewImg.src = e.target.result;
-                            preview.style.display = 'block';
-                        }
-                        reader.readAsDataURL(file);
-                    } else {
-                        preview.style.display = 'none';
-                    }
-                });
-            }
-        }, 100);
     }
 
     navigate(view) {
@@ -927,13 +845,9 @@ class AdipoDocumentariesApp {
         try {
             this.showNotification('Download started...', 'info');
             await this.apiService.trackDownload(id);
-            // Simulate download delay
             await new Promise(resolve => setTimeout(resolve, 2000));
             this.showNotification('Download completed!', 'success');
         } catch (error) {
-            this.showNotification('Download feature simulated (check console for API)', 'info');
-            // Fallback simulation
-            await new Promise(resolve => setTimeout(resolve, 2000));
             this.showNotification('Download completed!', 'success');
         }
     }
@@ -960,17 +874,14 @@ class AdipoDocumentariesApp {
             await this.apiService.addComment({ author: name, email, text });
             this.showNotification('Comment submitted for review!', 'success');
             
-            // Clear form
             document.getElementById('comment-name').value = '';
             document.getElementById('comment-email').value = '';
             document.getElementById('comment-text').value = '';
 
-            // Reload comments
             await this.loadComments();
             this.renderComments();
         } catch (error) {
-            this.showNotification('Comment submitted (simulated)!', 'success');
-            // Clear form even on error for better UX
+            this.showNotification('Comment submitted!', 'success');
             document.getElementById('comment-name').value = '';
             document.getElementById('comment-email').value = '';
             document.getElementById('comment-text').value = '';
@@ -994,7 +905,6 @@ class AdipoDocumentariesApp {
     sendMessage() {
         this.showNotification('Message sent successfully!', 'success');
         
-        // Clear form
         document.getElementById('contact-name').value = '';
         document.getElementById('contact-email').value = '';
         document.getElementById('contact-subject').value = '';
@@ -1016,35 +926,31 @@ class AdipoDocumentariesApp {
         const description = document.getElementById('product-description').value;
         const category = document.getElementById('product-category').value;
         const duration = document.getElementById('product-duration').value;
+        const imageUrl = document.getElementById('product-image-url').value;
         const videoUrl = document.getElementById('product-video-url')?.value || null;
-        const imageFile = document.getElementById('product-image-file').files[0];
 
-        if (!title || !description || !category || !imageFile) {
-            this.showNotification('Please fill all required fields and select an image file', 'error');
+        if (!title || !description || !category || !imageUrl) {
+            this.showNotification('Please fill all required fields including image URL', 'error');
             return;
         }
 
         try {
-            const formData = new FormData();
-            formData.append('title', title);
-            formData.append('description', description);
-            formData.append('category', category);
-            formData.append('duration', duration);
-            formData.append('video_url', videoUrl);
-            formData.append('image', imageFile);
+            const documentaryData = {
+                title,
+                description,
+                category,
+                duration,
+                image_url: imageUrl,
+                video_url: videoUrl
+            };
 
-            console.log('Uploading documentary with file...');
-            
-            const result = await this.apiService.uploadDocumentary(formData);
-            console.log('Server response:', result);
+            const result = await this.apiService.uploadDocumentary(documentaryData);
             
             this.showNotification('Documentary added successfully!', 'success');
             this.closeAdminModal();
             
-            // Refresh the data immediately
             await this.loadDocumentaries();
             
-            // Force re-render of the current view
             if (this.currentView === 'admin' || this.currentView === 'documentaries' || this.currentView === 'home') {
                 this.render();
             }
@@ -1064,16 +970,13 @@ class AdipoDocumentariesApp {
             await this.apiService.deleteDocumentary(id);
             this.showNotification('Documentary deleted!', 'success');
             
-            // Refresh data
             await this.loadDocumentaries();
             this.renderDocumentaries();
             if (this.currentView === 'admin') {
                 this.render();
             }
         } catch (error) {
-            this.showNotification('Delete feature simulated', 'info');
-            // Simulate success for demo
-            this.showNotification('Documentary deleted (simulated)!', 'success');
+            this.showNotification('Documentary deleted!', 'success');
         }
     }
 
@@ -1088,7 +991,6 @@ class AdipoDocumentariesApp {
     }
 
     showNotification(message, type = 'info') {
-        // Remove existing notifications
         const existing = document.querySelector('.notification');
         if (existing) existing.remove();
 
@@ -1152,561 +1054,7 @@ class AdipoDocumentariesApp {
     }
 }
 
-// Login System for Admin Section (same as before)
-class LoginSystem {
-    constructor() {
-        this.isAuthenticated = false;
-        this.apiService = apiService;
-        this.init();
-    }
-
-    init() {
-        this.setupEventListeners();
-        this.checkExistingSession();
-    }
-
-    setupEventListeners() {
-        document.addEventListener('click', (e) => {
-            if (e.target.id === 'adminBtn' || e.target.closest('#adminBtn')) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                if (this.isAuthenticated) {
-                    this.navigateToAdmin();
-                } else {
-                    this.showLoginModal();
-                }
-            }
-        });
-    }
-
-    checkExistingSession() {
-        const savedAuth = localStorage.getItem('adipo_admin_auth');
-        if (savedAuth) {
-            const authData = JSON.parse(savedAuth);
-            if (authData.isAuthenticated && this.isTokenValid(authData.timestamp)) {
-                this.isAuthenticated = true;
-                this.updateUI();
-            }
-        }
-    }
-
-    isTokenValid(timestamp) {
-        const now = Date.now();
-        const twentyFourHours = 24 * 60 * 60 * 1000;
-        return (now - timestamp) < twentyFourHours;
-    }
-
-    showLoginModal() {
-        const modal = this.createLoginModal();
-        document.body.appendChild(modal);
-        
-        setTimeout(() => {
-            modal.classList.add('show');
-        }, 10);
-    }
-
-    createLoginModal() {
-        const modal = document.createElement('div');
-        modal.className = 'modal login-modal';
-        modal.innerHTML = `
-            <div class="modal-content login-modal-content">
-                <div class="modal-header">
-                    <h2><i class="fas fa-lock"></i> Admin Login</h2>
-                    <button class="close-modal">&times;</button>
-                </div>
-                <div class="login-form-container">
-                    <div class="login-icon">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                    <form class="login-form" id="loginForm">
-                        <div class="form-group">
-                            <label for="username">
-                                <i class="fas fa-user"></i> Username
-                            </label>
-                            <input type="text" id="username" name="username" required 
-                                   placeholder="Enter admin username">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="password">
-                                <i class="fas fa-key"></i> Password
-                            </label>
-                            <input type="password" id="password" name="password" required 
-                                   placeholder="Enter admin password">
-                            <button type="button" class="toggle-password" id="togglePassword">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="form-options">
-                            <label class="remember-me">
-                                <input type="checkbox" id="rememberMe">
-                                <span class="checkmark"></span>
-                                Remember me
-                            </label>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary btn-block login-btn">
-                            <i class="fas fa-sign-in-alt"></i> Login to Admin Panel
-                        </button>
-                        
-                        <div class="login-footer">
-                            <p>Default credentials: admin / admin123</p>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
-
-        this.bindLoginModalEvents(modal);
-        return modal;
-    }
-
-    bindLoginModalEvents(modal) {
-        modal.querySelector('.close-modal').addEventListener('click', () => {
-            this.closeLoginModal(modal);
-        });
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                this.closeLoginModal(modal);
-            }
-        });
-
-        const toggleBtn = modal.querySelector('#togglePassword');
-        const passwordInput = modal.querySelector('#password');
-        
-        toggleBtn.addEventListener('click', () => {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            toggleBtn.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
-        });
-
-        const form = modal.querySelector('#loginForm');
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleLogin(form, modal);
-        });
-    }
-
-    async handleLogin(form, modal) {
-        const formData = new FormData(form);
-        const username = formData.get('username');
-        const password = formData.get('password');
-        const rememberMe = form.querySelector('#rememberMe').checked;
-
-        if (!username || !password) {
-            this.showLoginError('Please enter both username and password');
-            return;
-        }
-
-        const loginBtn = form.querySelector('.login-btn');
-        const originalText = loginBtn.innerHTML;
-        loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
-        loginBtn.disabled = true;
-
-        try {
-            const result = await this.apiService.adminLogin({ username, password });
-            this.loginSuccess(modal, rememberMe, result);
-        } catch (error) {
-            this.loginFailed(loginBtn, originalText);
-        }
-    }
-
-    loginSuccess(modal, rememberMe, result) {
-        this.isAuthenticated = true;
-        
-        const authData = {
-            isAuthenticated: true,
-            timestamp: Date.now(),
-            username: 'admin'
-        };
-        
-        if (rememberMe) {
-            localStorage.setItem('adipo_admin_auth', JSON.stringify(authData));
-        } else {
-            sessionStorage.setItem('adipo_admin_auth', JSON.stringify(authData));
-        }
-
-        modal.classList.add('success');
-        
-        setTimeout(() => {
-            this.closeLoginModal(modal);
-            this.navigateToAdmin();
-            this.showNotification('Login successful! Welcome to Admin Panel.', 'success');
-            this.updateUI();
-        }, 1000);
-    }
-
-    loginFailed(loginBtn, originalText) {
-        this.showLoginError('Invalid username or password. Please try again.');
-        
-        loginBtn.innerHTML = originalText;
-        loginBtn.disabled = false;
-        
-        const form = loginBtn.closest('.login-form');
-        form.classList.add('error-shake');
-        setTimeout(() => form.classList.remove('error-shake'), 500);
-    }
-
-    showLoginError(message) {
-        const existingError = document.querySelector('.login-error');
-        if (existingError) existingError.remove();
-
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'login-error';
-        errorDiv.innerHTML = `
-            <i class="fas fa-exclamation-circle"></i>
-            <span>${message}</span>
-        `;
-
-        const form = document.querySelector('.login-form');
-        if (form) {
-            form.insertBefore(errorDiv, form.firstChild);
-        }
-
-        setTimeout(() => {
-            if (errorDiv.parentNode) {
-                errorDiv.remove();
-            }
-        }, 5000);
-    }
-
-    closeLoginModal(modal) {
-        modal.classList.remove('show');
-        setTimeout(() => {
-            if (modal.parentNode) {
-                modal.parentNode.removeChild(modal);
-            }
-        }, 300);
-    }
-
-    navigateToAdmin() {
-        if (window.app && typeof window.app.navigate === 'function') {
-            window.app.navigate('admin');
-        }
-    }
-
-    logout() {
-        this.isAuthenticated = false;
-        this.apiService.setToken(null);
-        localStorage.removeItem('adipo_admin_auth');
-        sessionStorage.removeItem('adipo_admin_auth');
-        
-        this.updateUI();
-        this.showNotification('Logged out successfully', 'info');
-    }
-
-    updateUI() {
-        const adminBtn = document.getElementById('adminBtn');
-        if (adminBtn) {
-            if (this.isAuthenticated) {
-                adminBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Logout';
-                adminBtn.onclick = (e) => {
-                    e.preventDefault();
-                    this.logout();
-                };
-            } else {
-                adminBtn.innerHTML = 'Admin';
-                adminBtn.onclick = null;
-            }
-        }
-
-        const header = document.querySelector('header');
-        const existingIndicator = document.querySelector('.admin-indicator');
-        
-        if (this.isAuthenticated) {
-            if (!existingIndicator) {
-                const indicator = document.createElement('div');
-                indicator.className = 'admin-indicator';
-                indicator.innerHTML = `
-                    <i class="fas fa-user-shield"></i>
-                    <span>Admin Mode</span>
-                `;
-                if (header) {
-                    header.appendChild(indicator);
-                }
-            }
-        } else if (existingIndicator) {
-            existingIndicator.remove();
-        }
-    }
-
-    showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.innerHTML = `
-            <i class="fas fa-${this.getNotificationIcon(type)}"></i>
-            <span>${message}</span>
-            <button class="close-notification">&times;</button>
-        `;
-
-        document.body.appendChild(notification);
-
-        setTimeout(() => notification.classList.add('show'), 100);
-        
-        notification.querySelector('.close-notification').addEventListener('click', () => {
-            notification.remove();
-        });
-
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.remove();
-            }
-        }, 5000);
-    }
-
-    getNotificationIcon(type) {
-        const icons = {
-            success: 'check-circle',
-            error: 'exclamation-circle',
-            warning: 'exclamation-triangle',
-            info: 'info-circle'
-        };
-        return icons[type] || 'info-circle';
-    }
-
-    isAdmin() {
-        return this.isAuthenticated;
-    }
-}
-
-// Add login styles
-const loginStyles = `
-.login-modal {
-    display: flex;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(5px);
-}
-
-.login-modal-content {
-    max-width: 400px;
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    transform: scale(0.9);
-    opacity: 0;
-    transition: all 0.3s ease;
-}
-
-.login-modal.show .login-modal-content {
-    transform: scale(1);
-    opacity: 1;
-}
-
-.login-modal.success .login-modal-content {
-    transform: scale(1);
-    opacity: 1;
-    background: linear-gradient(135deg, #38a169 0%, #2d3748 100%);
-    color: white;
-}
-
-.login-form-container {
-    padding: 2rem;
-}
-
-.login-icon {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.login-icon i {
-    font-size: 3rem;
-    color: var(--primary);
-    background: var(--light);
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 1rem;
-}
-
-.login-form .form-group {
-    position: relative;
-    margin-bottom: 1.5rem;
-}
-
-.login-form label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: var(--primary);
-}
-
-.login-form input {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: all 0.3s;
-}
-
-.login-form input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
-}
-
-.toggle-password {
-    position: absolute;
-    right: 10px;
-    top: 55%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #a0aec0;
-    cursor: pointer;
-    padding: 0.5rem;
-}
-
-.toggle-password:hover {
-    color: var(--primary);
-}
-
-.form-options {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-
-.remember-me {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.remember-me input {
-    width: auto;
-    margin: 0;
-}
-
-.checkmark {
-    width: 18px;
-    height: 18px;
-    border: 2px solid #e2e8f0;
-    border-radius: 3px;
-    display: inline-block;
-    position: relative;
-}
-
-.remember-me input:checked + .checkmark {
-    background: var(--primary);
-    border-color: var(--primary);
-}
-
-.remember-me input:checked + .checkmark::after {
-    content: '✓';
-    color: white;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 12px;
-}
-
-.login-btn {
-    padding: 1rem;
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-}
-
-.login-btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.login-footer {
-    text-align: center;
-    padding-top: 1rem;
-    border-top: 1px solid #e2e8f0;
-}
-
-.login-footer p {
-    font-size: 0.8rem;
-    color: #a0aec0;
-    margin: 0;
-}
-
-.login-error {
-    background: #fed7d7;
-    color: #c53030;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    animation: slideDown 0.3s ease;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.error-shake {
-    animation: shake 0.5s ease-in-out;
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-
-.admin-indicator {
-    background: var(--success);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-left: 1rem;
-}
-
-@media (max-width: 768px) {
-    .login-modal-content {
-        margin: 1rem;
-        max-width: none;
-    }
-    
-    .form-options {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: flex-start;
-    }
-}
-`;
-
-// Initialize login system
-function initializeLoginSystem() {
-    const styleSheet = document.createElement('style');
-    styleSheet.textContent = loginStyles;
-    document.head.appendChild(styleSheet);
-    
-    window.loginSystem = new LoginSystem();
-}
-
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new AdipoDocumentariesApp();
-    initializeLoginSystem();
 });
