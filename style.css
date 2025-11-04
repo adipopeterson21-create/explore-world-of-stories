@@ -806,7 +806,7 @@
 .upload-form-container {
     background: var(--light);
     padding: 2rem;
-    border-radius: 8px;
+    border-radius: 2px;
     margin-bottom: 2rem;
     border: 2px dashed #cbd5e0;
 }
@@ -828,9 +828,9 @@
 }
 
 .form-group label {
-    display: block;
+    display: flex;
     margin-bottom: 0.5rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--primary);
 }
 
