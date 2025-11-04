@@ -281,7 +281,21 @@ nav a:hover::after {
     background-color: var(--secondary);
     background-size: cover;
     background-position: center;
+    background-repeat: no-repeat;
     position: relative;
+}
+
+.card-img.fallback {
+    background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.card-img.fallback i {
+    font-size: 3rem;
+    opacity: 0.7;
 }
 
 .card-overlay {
@@ -979,6 +993,18 @@ footer {
     height: 40px;
     object-fit: cover;
     border-radius: 4px;
+    background: #f7fafc;
+}
+
+.admin-thumbnail.fallback {
+    background: var(--gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.7rem;
+    text-align: center;
+    padding: 0.2rem;
 }
 
 .action-buttons {
@@ -1067,6 +1093,87 @@ footer {
     font-size: 1.5rem;
     cursor: pointer;
     color: var(--secondary);
+}
+
+/* Video and Image Styles */
+.video-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    margin: 1rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.image-container {
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f7fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.image-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+.image-placeholder, .video-placeholder {
+    background: #f7fafc;
+    color: var(--secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    border: 2px dashed #cbd5e0;
+    width: 100%;
+}
+
+.image-placeholder i, .video-placeholder i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #a0aec0;
+}
+
+.video-details h3 {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.video-details p {
+    color: var(--secondary);
+    line-height: 1.6;
+}
+
+.video-meta {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1rem;
+    color: var(--secondary);
+    font-size: 0.9rem;
+}
+
+.video-meta i {
+    margin-right: 0.5rem;
+    color: var(--accent);
 }
 
 /* Upload Form Styles */
@@ -1290,6 +1397,15 @@ footer {
     .pricing-card.featured {
         transform: none;
     }
+    
+    .video-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .table-responsive {
+        overflow-x: auto;
+    }
 }
 
 @media (max-width: 576px) {
@@ -1332,6 +1448,11 @@ footer {
         left: 10px;
         max-width: none;
     }
+    
+    .modal-content {
+        margin: 1rem;
+        width: calc(100% - 2rem);
+    }
 }
 
 /* Additional Utility Classes */
@@ -1346,10 +1467,6 @@ footer {
 .admin-login {
     max-width: 400px;
     margin: 0 auto;
-}
-
-.text-muted {
-    color: #718096;
 }
 
 /* Focus states for accessibility */
