@@ -1491,3 +1491,96 @@ textarea:focus {
         display: none !important;
     }
 }
+/* PDF Upload Styles */
+.upload-area {
+    border: 2px dashed #cbd5e0;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s;
+    cursor: pointer;
+    background: #f7fafc;
+}
+
+.upload-area:hover {
+    border-color: var(--primary);
+    background: rgba(26, 54, 93, 0.05);
+}
+
+.upload-area i {
+    font-size: 3rem;
+    color: #cbd5e0;
+    margin-bottom: 1rem;
+}
+
+.upload-area:hover i {
+    color: var(--primary);
+}
+
+.upload-area.drag-over {
+    border-color: var(--accent);
+    background: rgba(229, 62, 62, 0.05);
+}
+
+.pdf-preview {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--light);
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.pdf-preview-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pdf-icon {
+    font-size: 2rem;
+    color: #e53e3e;
+}
+
+.pdf-info h4 {
+    margin-bottom: 0.5rem;
+    color: var(--primary);
+}
+
+.pdf-info p {
+    color: var(--secondary);
+    margin-bottom: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+}
+
+/* PDF in Cards */
+.card-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* PDF in Admin Table */
+.pdf-badge {
+    background: #e53e3e;
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* Responsive PDF */
+@media (max-width: 768px) {
+    .pdf-preview-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .card-actions {
+        flex-direction: column;
+    }
+}
