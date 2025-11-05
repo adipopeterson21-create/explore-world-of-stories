@@ -58,6 +58,31 @@ class ApiService {
             throw error;
         }
     }
+    // Add to ApiService class
+async uploadPdf(file) {
+    const formData = new FormData();
+    formData.append('pdf', file);
+    
+    const response = await fetch(`${this.baseURL}/upload/pdf`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${this.token}`
+        },
+        body: formData
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    
+    return await response.json();
+}
+
+async downloadPdf(id) {
+    return this.request(`/documentaries/${id}/pdf/download`, {
+        method: 'POST'
+    });
+}
 
     // Documentaries
     async getDocumentaries() {
@@ -145,6 +170,359 @@ class AdipoDocumentariesApp {
         this.isUserLoggedIn = !!localStorage.getItem('userToken');
         this.isAdminLoggedIn = !!localStorage.getItem('adminToken');
         this.init();
+        // PDF Upload and Handling Methods
+handlePdfUpload(files) {
+    if (!files.length) return;
+    
+    const file = files[0];
+    
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+        this.showNotification('Please upload a PDF file only', 'error');
+        return;
+    }
+    
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+        this.showNotification('PDF file size must be less than 10MB', 'error');
+        return;
+    }
+    
+    // Show preview
+    this.showPdfPreview(file);
+    
+    // Update upload area
+    const uploadArea = document.getElementById('pdfUploadArea');
+    uploadArea.innerHTML = `
+        <i class="fas fa-check-circle" style="color: var(--success);"></i>
+        <p>${file.name}</p>
+        <small>${this.formatFileSize(file.size)} - Ready to upload</small>
+    `;
+    uploadArea.style.borderColor = 'var(--success)';
+}
+
+showPdfPreview(file) {
+    const previewContainer = document.getElementById('pdf-preview');
+    const fileURL = URL.createObjectURL(file);
+    
+    previewContainer.innerHTML = `
+        <div class="pdf-preview-content">
+            <div class="pdf-icon">
+                <i class="fas fa-file-pdf"></i>
+            </div>
+            <div class="pdf-info">
+                <h4>${file.name}</h4>
+                <p>${this.formatFileSize(file.size)}</p>
+                <button type="button" class="btn btn-outline btn-sm" onclick="app.removePdfPreview()">
+                    <i class="fas fa-times"></i> Remove
+                </button>
+            </div>
+        </div>
+    `;
+    previewContainer.style.display = 'block';
+    
+    // Store file for later upload
+    this.currentPdfFile = file;
+}
+
+removePdfPreview() {
+    const previewContainer = document.getElementById('pdf-preview');
+    const uploadArea = document.getElementById('pdfUploadArea');
+    
+    previewContainer.style.display = 'none';
+    previewContainer.innerHTML = '';
+    
+    uploadArea.innerHTML = `
+        <i class="fas fa-file-pdf"></i>
+        <p>Click to upload PDF file</p>
+        <small>Max file size: 10MB</small>
+    `;
+    uploadArea.style.borderColor = '';
+    
+    // Clear stored file
+    this.currentPdfFile = null;
+    document.getElementById('pdf-file').value = '';
+}
+
+formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+async uploadPdfToServer(file) {
+    // Simulate PDF upload - in real app, you'd upload to your server
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            // Generate a mock URL - in production, this would be your actual file URL
+            const mockPdfUrl = `https://example.com/uploads/${Date.now()}_${file.name}`;
+            resolve(mockPdfUrl);
+        }, 1500);
+    });
+}
+
+// Update the documentary submission to handle PDF
+async handleDocumentarySubmit(e) {
+    e.preventDefault();
+    
+    if (!this.isAdminLoggedIn) {
+        this.showNotification('Admin access required', 'error');
+        return;
+    }
+
+    const title = document.getElementById('product-title').value;
+    const description = document.getElementById('product-description').value;
+    const category = document.getElementById('product-category').value;
+    const duration = document.getElementById('product-duration').value;
+    const imageUrl = document.getElementById('product-image-url').value;
+    const videoUrl = document.getElementById('product-video-url')?.value || null;
+    const pdfUrl = document.getElementById('product-pdf-url')?.value || null;
+    const rating = parseFloat(document.getElementById('product-rating').value) || 4.0;
+
+    if (!title || !description || !category) {
+        this.showNotification('Please fill all required fields', 'error');
+        return;
+    }
+
+    // Validate image URL
+    if (imageUrl && !this.isValidImageUrl(imageUrl)) {
+        this.showNotification('Please enter a valid image URL (jpg, png, gif, etc.)', 'error');
+        return;
+    }
+
+    // Validate video URL if provided
+    if (videoUrl && !this.isValidVideoUrl(videoUrl)) {
+        this.showNotification('Please enter a valid YouTube, Vimeo, or direct video URL', 'error');
+        return;
+    }
+
+    // Validate PDF URL if provided
+    if (pdfUrl && !this.isValidPdfUrl(pdfUrl)) {
+        this.showNotification('Please enter a valid PDF URL', 'error');
+        return;
+    }
+
+    try {
+        let finalPdfUrl = pdfUrl;
+        
+        // Upload PDF file if one was selected
+        if (this.currentPdfFile) {
+            this.showNotification('Uploading PDF file...', 'info');
+            finalPdfUrl = await this.uploadPdfToServer(this.currentPdfFile);
+            this.showNotification('PDF uploaded successfully!', 'success');
+        }
+
+        const documentaryData = {
+            id: Date.now(),
+            title,
+            description,
+            category,
+            duration,
+            image_url: imageUrl,
+            video_url: videoUrl,
+            pdf_url: finalPdfUrl,
+            rating: rating,
+            downloads: 0,
+            dateAdded: new Date().toISOString().split('T')[0]
+        };
+
+        const result = await this.apiService.uploadDocumentary(documentaryData);
+        
+        this.showNotification('Documentary added successfully!', 'success');
+        this.closeAdminModal();
+        
+        // Add to local documentaries
+        this.documentaries.unshift(documentaryData);
+        
+        // Update views
+        if (this.currentView === 'admin' || this.currentView === 'documentaries' || this.currentView === 'home') {
+            this.render();
+        }
+        
+    } catch (error) {
+        console.error('Error adding documentary:', error);
+        // Fallback for demo
+        const documentaryData = {
+            id: Date.now(),
+            title,
+            description,
+            category,
+            duration,
+            image_url: imageUrl,
+            video_url: videoUrl,
+            pdf_url: pdfUrl,
+            rating: rating,
+            downloads: 0,
+            dateAdded: new Date().toISOString().split('T')[0]
+        };
+        this.documentaries.unshift(documentaryData);
+        this.showNotification('Documentary added successfully!', 'success');
+        this.closeAdminModal();
+        
+        if (this.currentView === 'admin' || this.currentView === 'documentaries' || this.currentView === 'home') {
+            this.render();
+        }
+    }
+}
+
+isValidPdfUrl(url) {
+    if (!url) return true; // PDF is optional
+    
+    // Check if it's a PDF file or common document hosting
+    const pdfPattern = /\.(pdf)$/i;
+    if (pdfPattern.test(url)) {
+        return true;
+    }
+    
+    // Allow common document hosting services
+    const allowedDomains = [
+        'drive.google.com',
+        'dropbox.com',
+        'onedrive.live.com',
+        'icloud.com',
+        'docs.google.com'
+    ];
+    
+    return allowedDomains.some(domain => url.includes(domain));
+}
+
+// Update the documentary card to show PDF download
+renderDocumentaryCard(doc) {
+    const imageUrl = this.getImageUrl(doc);
+    const isFallback = !doc.image_url || !this.isValidImageUrl(doc.image_url);
+    const hasPdf = doc.pdf_url && this.isValidPdfUrl(doc.pdf_url);
+    
+    return `
+        <div class="documentary-card">
+            <div class="card-img ${isFallback ? 'fallback' : ''}" 
+                 style="${!isFallback ? `background-image: url('${imageUrl}')` : ''}">
+                ${isFallback ? `
+                    <i class="fas fa-film"></i>
+                ` : `
+                    <div class="card-overlay">
+                        <button class="btn-play" onclick="app.viewDetails(${doc.id})">
+                            <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                `}
+            </div>
+            <div class="card-content">
+                <h3>${doc.title}</h3>
+                <p>${doc.description}</p>
+                <div class="card-meta">
+                    <span class="category-tag">${doc.category}</span>
+                    <span class="duration">${doc.duration}</span>
+                </div>
+                <div class="card-stats">
+                    <div class="rating">
+                        ${this.generateStars(doc.rating)}
+                        <span>${doc.rating}</span>
+                    </div>
+                    <div class="downloads">
+                        <i class="fas fa-download"></i>
+                        <span>${doc.downloads || 0}</span>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-outline" onclick="app.downloadDocumentary(${doc.id})">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                    <button class="btn btn-primary" onclick="app.viewDetails(${doc.id})">
+                        <i class="fas fa-play"></i> Watch
+                    </button>
+                    ${hasPdf ? `
+                        <button class="btn btn-outline" onclick="app.downloadPdf(${doc.id})" title="Download PDF">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// PDF Download Method
+async downloadPdf(id) {
+    if (!this.isUserLoggedIn) {
+        this.showNotification('Please login to download PDFs', 'warning');
+        this.navigate('login');
+        return;
+    }
+
+    const documentary = this.documentaries.find(doc => doc.id === id);
+    if (!documentary || !documentary.pdf_url) {
+        this.showNotification('PDF not available for this documentary', 'error');
+        return;
+    }
+
+    try {
+        this.showNotification('Preparing PDF download...', 'info');
+        
+        // Track download
+        await this.apiService.trackDownload(id);
+        
+        // Simulate download delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Open PDF in new tab or download
+        this.openPdf(documentary.pdf_url, documentary.title);
+        
+        this.showNotification('PDF download started!', 'success');
+        
+    } catch (error) {
+        // Fallback - open PDF directly
+        this.openPdf(documentary.pdf_url, documentary.title);
+        this.showNotification('PDF opened in new tab!', 'success');
+    }
+}
+
+openPdf(pdfUrl, title) {
+    // Try to open in new tab for viewing
+    const newTab = window.open(pdfUrl, '_blank');
+    
+    // If blocked by popup blocker, provide download link
+    if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+        // Create download link
+        const link = document.createElement('a');
+        link.href = pdfUrl;
+        link.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+// Update the video modal to show PDF download option
+getVideoEmbed(documentary) {
+    // ... existing video embed code ...
+    
+    // Add PDF download button to video details
+    const hasPdf = documentary.pdf_url && this.isValidPdfUrl(documentary.pdf_url);
+    const pdfButton = hasPdf ? `
+        <button class="btn btn-outline" onclick="app.downloadPdf(${documentary.id})" style="margin-top: 1rem;">
+            <i class="fas fa-file-pdf"></i> Download PDF Companion
+        </button>
+    ` : '';
+    
+    // Add to the existing return statement in getVideoEmbed method
+    // Find where the video details are returned and add the pdfButton
+    return `
+        ${videoEmbed}
+        <div class="video-details" style="margin-top: 1.5rem;">
+            <h3>${documentary.title}</h3>
+            <p>${documentary.description}</p>
+            ${pdfButton}
+            <div class="video-meta" style="display: flex; gap: 2rem; margin-top: 1rem; color: var(--secondary);">
+                <span><i class="fas fa-clock"></i> ${documentary.duration}</span>
+                <span><i class="fas fa-download"></i> ${documentary.downloads || 0} downloads</span>
+                <span><i class="fas fa-star"></i> ${documentary.rating}/5</span>
+                <span><i class="fas fa-tag"></i> ${documentary.category}</span>
+            </div>
+        </div>
+    `;
+}
     }
 
     async init() {
@@ -301,7 +679,7 @@ class AdipoDocumentariesApp {
                     <div class="header-content">
                         <div class="logo">
                             <i class="fas fa-film"></i>
-                            <h1>Adipo Documentaries</h1>
+                            <h1 id="odd";>Adipo Education && Documentaries plartform</h1>
                         </div>
                         <nav>
                             <ul>
@@ -1119,6 +1497,15 @@ class AdipoDocumentariesApp {
                                         <select id="product-category" class="form-control" required>
                                             <option value="">Select Category</option>
                                             <option value="nature">Nature & Environment</option>
+                                            <option value="programming">programming</option>
+                                            <option value="machine learning">machine learning</option>
+                                            <option value="artificial intelligence">artificial intelligence</option>
+                                            <option value="graphic design">graphic design</option>
+                                            <option value="automation">automation</option>
+                                            <option value="computer basics">computer basics</option>
+                                            <option value="computer science">computer science</option>
+                                            <option value="content creation">content creation</option>
+                                            <option value="entertainment">entertainment</option>
                                             <option value="society">Society & Culture</option>
                                             <option value="science">Science & Technology</option>
                                             <option value="history">History & Archaeology</option>
@@ -1178,6 +1565,25 @@ class AdipoDocumentariesApp {
 
             <!-- Notification System -->
             <div class="notification-container" id="notificationContainer"></div>
+            // Add this in the admin modal form after the video URL field
+<div class="form-group">
+    <label for="product-pdf-url">PDF Document (Optional)</label>
+    <input type="url" id="product-pdf-url" class="form-control" 
+           placeholder="https://example.com/document.pdf">
+    <small class="help-text">Link to PDF document or supplementary materials</small>
+</div>
+
+<div class="form-group">
+    <label for="pdf-upload">Or Upload PDF File</label>
+    <div class="upload-area" id="pdfUploadArea" onclick="document.getElementById('pdf-file').click()">
+        <i class="fas fa-file-pdf"></i>
+        <p>Click to upload PDF file</p>
+        <small>Max file size: 10MB</small>
+        <input type="file" id="pdf-file" accept=".pdf" style="display: none;" 
+               onchange="app.handlePdfUpload(this.files)">
+    </div>
+    <div id="pdf-preview" class="pdf-preview" style="display: none;"></div>
+</div>
         `;
     }
 
