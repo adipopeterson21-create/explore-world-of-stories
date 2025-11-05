@@ -616,6 +616,26 @@ getVideoEmbed(documentary) {
                 duration: "38 min"
             }
         ];
+        async loadFallbackData() {
+    // Mock data as fallback - IMMEDIATE
+    this.documentaries = [
+        {
+            id: 1,
+            title: "Wilderness Untamed",
+            description: "Explore the last remaining wilderness areas on Earth and the challenges they face in the modern world.",
+            image_url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+            video_url: "https://www.youtube.com/embed/7n7bw6luneo",
+            pdf_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", // Example PDF
+            category: "nature",
+            rating: 4.5,
+            downloads: 1247,
+            dateAdded: "2023-05-15",
+            duration: "45 min"
+        },
+        // ... other documentaries with pdf_url
+    ];
+    // ... rest of method
+}
         
         this.comments = [
             {
